@@ -1,0 +1,196 @@
+LINE  | COL   | TOKEN           | CLASSIFICATION       | LEXEME
+---------------------------------------------------------------
+1     | 1     | LINE_COMMENT    | Comment              | # This program should be a VALID .epl file.
+1     | 44    | NEWLINE         | Delimiter            | \n
+2     | 1     | BLOCK_COMMENT   | Comment              | /* No errors should return. The purpose of this program is to test whether the lexer functions properly. \nIt uses every token category: keywords, reserved words, noise words, constants, operators, etc. */
+3     | 99    | NEWLINE         | Delimiter            | \n\n
+5     | 1     | NW_LET          | Noise Word           | let
+5     | 5     | KW_STRING       | Keyword              | string
+5     | 12    | IDENT           | Identifier           | name
+5     | 17    | ASSIGN          | Assignment Operator  | =
+5     | 19    | STR_LIT         | Constant             | "Juan"
+5     | 25    | NEWLINE         | Delimiter            | \n
+6     | 1     | KW_CHARACTER    | Keyword              | character
+6     | 11    | IDENT           | Identifier           | sex
+6     | 15    | ASSIGN          | Assignment Operator  | =
+6     | 17    | CHAR_LIT        | Constant             | 'M'
+6     | 20    | NEWLINE         | Delimiter            | \n
+7     | 1     | KW_INTEGER      | Keyword              | integer
+7     | 9     | IDENT           | Identifier           | days
+7     | 14    | ASSIGN          | Assignment Operator  | =
+7     | 16    | INT_LIT         | Constant             | 45
+7     | 18    | NEWLINE         | Delimiter            | \n
+8     | 1     | KW_DECIMAL      | Keyword              | decimal
+8     | 9     | IDENT           | Identifier           | weight
+8     | 16    | ASSIGN          | Assignment Operator  | =
+8     | 18    | DEC_LIT         | Constant             | 115.5
+8     | 23    | NEWLINE         | Delimiter            | \n
+9     | 1     | KW_BOOLEAN      | Keyword              | boolean
+9     | 9     | IDENT           | Identifier           | done
+9     | 14    | ASSIGN          | Assignment Operator  | =
+9     | 16    | KW_FALSE        | Constant             | false
+9     | 21    | NEWLINE         | Delimiter            | \n
+10    | 1     | KW_VECTOR       | Keyword              | vector
+10    | 8     | IDENT           | Identifier           | weights
+10    | 16    | ASSIGN          | Assignment Operator  | =
+10    | 18    | LBRACKET        | Bracket              | [
+10    | 19    | INT_LIT         | Constant             | 50
+10    | 21    | COMMA           | Delimiter            | ,
+10    | 23    | INT_LIT         | Constant             | 51
+10    | 25    | COMMA           | Delimiter            | ,
+10    | 27    | INT_LIT         | Constant             | 52
+10    | 29    | RBRACKET        | Bracket              | ]
+10    | 30    | NEWLINE         | Delimiter            | \n\n
+12    | 1     | KW_INPUT        | Keyword              | input
+12    | 7     | NW_FROM         | Noise Word           | from
+12    | 12    | LPAREN          | Bracket              | (
+12    | 13    | IDENT           | Identifier           | days
+12    | 17    | RPAREN          | Bracket              | )
+12    | 18    | NEWLINE         | Delimiter            | \n
+13    | 1     | KW_PRINT        | Keyword              | print
+13    | 7     | NW_THE          | Noise Word           | the
+13    | 11    | FN_MEAN         | Reserved Word        | mean
+13    | 15    | LPAREN          | Bracket              | (
+13    | 16    | IDENT           | Identifier           | weights
+13    | 23    | LBRACKET        | Bracket              | [
+13    | 24    | INT_LIT         | Constant             | 0
+13    | 25    | COLON           | Delimiter            | :
+13    | 26    | INT_LIT         | Constant             | 2
+13    | 27    | RBRACKET        | Bracket              | ]
+13    | 28    | RPAREN          | Bracket              | )
+13    | 29    | NEWLINE         | Delimiter            | \n
+14    | 1     | KW_PRINT        | Keyword              | print
+14    | 7     | NW_USING        | Noise Word           | using
+14    | 13    | LPAREN          | Bracket              | (
+14    | 14    | FN_MEDIAN       | Reserved Word        | median
+14    | 21    | NW_OF           | Noise Word           | of
+14    | 24    | LPAREN          | Bracket              | (
+14    | 25    | IDENT           | Identifier           | weights
+14    | 32    | RPAREN          | Bracket              | )
+14    | 33    | COMMA           | Delimiter            | ,
+14    | 35    | FN_MODE         | Reserved Word        | mode
+14    | 39    | LPAREN          | Bracket              | (
+14    | 40    | IDENT           | Identifier           | weights
+14    | 47    | RPAREN          | Bracket              | )
+14    | 48    | COMMA           | Delimiter            | ,
+14    | 50    | FN_VARIANCE     | Reserved Word        | variance
+14    | 58    | LPAREN          | Bracket              | (
+14    | 59    | IDENT           | Identifier           | weights
+14    | 66    | RPAREN          | Bracket              | )
+14    | 67    | RPAREN          | Bracket              | )
+14    | 68    | NEWLINE         | Delimiter            | \n\n
+16    | 1     | IDENT           | Identifier           | weight
+16    | 8     | SLASH_EQ        | Assignment Operator  | /=
+16    | 11    | DEC_LIT         | Constant             | 2.2
+16    | 14    | NEWLINE         | Delimiter            | \n
+17    | 1     | KW_WHILE        | Keyword              | while
+17    | 7     | IDENT           | Identifier           | weight
+17    | 14    | LT              | Boolean Operator     | <
+17    | 16    | INT_LIT         | Constant             | 55
+17    | 19    | KW_AND          | Boolean Operator     | and
+17    | 23    | KW_NOT          | Boolean Operator     | not
+17    | 27    | IDENT           | Identifier           | done
+17    | 31    | LBRACE          | Bracket              | {
+17    | 32    | NEWLINE         | Delimiter            | \n    
+18    | 5     | IDENT           | Identifier           | weight
+18    | 12    | PLUS_EQ         | Assignment Operator  | +=
+18    | 15    | DEC_LIT         | Constant             | 0.5
+18    | 18    | NEWLINE         | Delimiter            | \n    
+19    | 5     | IDENT           | Identifier           | weight
+19    | 12    | MINUS_EQ        | Assignment Operator  | -=
+19    | 15    | DEC_LIT         | Constant             | 0.1
+19    | 18    | NEWLINE         | Delimiter            | \n    
+20    | 5     | IDENT           | Identifier           | weight
+20    | 12    | STAR_EQ         | Assignment Operator  | *=
+20    | 15    | DEC_LIT         | Constant             | 1.01
+20    | 19    | NEWLINE         | Delimiter            | \n    
+21    | 5     | IDENT           | Identifier           | done
+21    | 10    | ASSIGN          | Assignment Operator  | =
+21    | 12    | IDENT           | Identifier           | weight
+21    | 19    | GE              | Boolean Operator     | >=
+21    | 22    | INT_LIT         | Constant             | 55
+21    | 24    | NEWLINE         | Delimiter            | \n
+22    | 1     | RBRACE          | Bracket              | }
+22    | 2     | NEWLINE         | Delimiter            | \n\n
+24    | 1     | KW_DECIMAL      | Keyword              | decimal
+24    | 9     | IDENT           | Identifier           | growth
+24    | 16    | ASSIGN          | Assignment Operator  | =
+24    | 18    | DEC_LIT         | Constant             | 1.01
+24    | 22    | NEWLINE         | Delimiter            | \n
+25    | 1     | IDENT           | Identifier           | growth
+25    | 8     | CARET_EQ        | Assignment Operator  | ^=
+25    | 11    | IDENT           | Identifier           | days
+25    | 16    | FLOOR_DIV       | Arithmetic Operator  | //
+25    | 19    | INT_LIT         | Constant             | 7
+25    | 20    | NEWLINE         | Delimiter            | \n
+26    | 1     | KW_IF           | Keyword              | if
+26    | 4     | IDENT           | Identifier           | done
+26    | 9     | EQ              | Boolean Operator     | ==
+26    | 12    | KW_TRUE         | Constant             | true
+26    | 17    | KW_OR           | Boolean Operator     | or
+26    | 20    | IDENT           | Identifier           | weight
+26    | 27    | SLASH           | Arithmetic Operator  | /
+26    | 29    | DEC_LIT         | Constant             | 1.7
+26    | 33    | CARET           | Arithmetic Operator  | ^
+26    | 35    | INT_LIT         | Constant             | 2
+26    | 37    | GT              | Boolean Operator     | >
+26    | 39    | INT_LIT         | Constant             | 25
+26    | 41    | LBRACE          | Bracket              | {
+26    | 42    | NEWLINE         | Delimiter            | \n    
+27    | 5     | KW_PRINT        | Keyword              | print
+27    | 10    | LPAREN          | Bracket              | (
+27    | 11    | IDENT           | Identifier           | name
+27    | 15    | COMMA           | Delimiter            | ,
+27    | 17    | IDENT           | Identifier           | sex
+27    | 20    | COMMA           | Delimiter            | ,
+27    | 22    | IDENT           | Identifier           | growth
+27    | 28    | RPAREN          | Bracket              | )
+27    | 29    | NEWLINE         | Delimiter            | \n
+28    | 1     | RBRACE          | Bracket              | }
+28    | 2     | NEWLINE         | Delimiter            | \n\n
+30    | 1     | KW_ELIF         | Keyword              | elif
+30    | 6     | IDENT           | Identifier           | days
+30    | 11    | PERCENT         | Arithmetic Operator  | %
+30    | 13    | INT_LIT         | Constant             | 7
+30    | 15    | NOT_EQ          | Boolean Operator     | not=
+30    | 20    | INT_LIT         | Constant             | 0
+30    | 22    | KW_AND          | Boolean Operator     | and
+30    | 26    | IDENT           | Identifier           | weight
+30    | 33    | LE              | Boolean Operator     | <=
+30    | 36    | INT_LIT         | Constant             | 50
+30    | 38    | LBRACE          | Bracket              | {
+30    | 39    | NEWLINE         | Delimiter            | \n    
+31    | 5     | KW_PRINT        | Keyword              | print
+31    | 10    | LPAREN          | Bracket              | (
+31    | 11    | IDENT           | Identifier           | name
+31    | 15    | COMMA           | Delimiter            | ,
+31    | 17    | INT_LIT         | Constant             | 55
+31    | 20    | MINUS           | Arithmetic Operator  | -
+31    | 22    | IDENT           | Identifier           | weight
+31    | 28    | RPAREN          | Bracket              | )
+31    | 29    | NEWLINE         | Delimiter            | \n
+32    | 1     | RBRACE          | Bracket              | }
+32    | 2     | NEWLINE         | Delimiter            | \n\n
+34    | 1     | KW_ELSE         | Keyword              | else
+34    | 5     | LBRACE          | Bracket              | {
+34    | 6     | NEWLINE         | Delimiter            | \n    
+35    | 5     | IDENT           | Identifier           | days
+35    | 10    | PERCENT_EQ      | Assignment Operator  | %=
+35    | 13    | INT_LIT         | Constant             | 7
+35    | 14    | NEWLINE         | Delimiter            | \n    
+36    | 5     | KW_PRINT        | Keyword              | print
+36    | 10    | LPAREN          | Bracket              | (
+36    | 11    | IDENT           | Identifier           | name
+36    | 15    | COMMA           | Delimiter            | ,
+36    | 17    | IDENT           | Identifier           | weight
+36    | 24    | STAR            | Arithmetic Operator  | *
+36    | 26    | DEC_LIT         | Constant             | 2.2
+36    | 29    | COMMA           | Delimiter            | ,
+36    | 31    | IDENT           | Identifier           | days
+36    | 36    | PLUS            | Arithmetic Operator  | +
+36    | 38    | INT_LIT         | Constant             | 1
+36    | 39    | RPAREN          | Bracket              | )
+36    | 40    | NEWLINE         | Delimiter            | \n
+37    | 1     | RBRACE          | Bracket              | }
+37    | 2     | NEWLINE         | Delimiter            | \n
+38    | 1     | EOF             | End of File          | 

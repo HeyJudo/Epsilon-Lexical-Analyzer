@@ -1,0 +1,123 @@
+LINE  | COL   | TOKEN           | CLASSIFICATION       | LEXEME
+---------------------------------------------------------------
+1     | 1     | LINE_COMMENT    | Comment              | # This program should be an INVALID .epl file.
+1     | 47    | NEWLINE         | Delimiter            | \n
+2     | 1     | BLOCK_COMMENT   | Comment              | /* Multiple errors should be reported. The purpose of this program is to test whether\n   the lexer catches every kind of lexical error and keeps going after each one.\n   Every line after a numbered comment holds one lexical error, unless noted. */
+4     | 81    | NEWLINE         | Delimiter            | \n\n
+6     | 1     | LINE_COMMENT    | Comment              | # --- Numbers ---
+6     | 18    | NEWLINE         | Delimiter            | \n
+7     | 1     | LINE_COMMENT    | Comment              | # 1. Identifier starting with a digit:
+7     | 39    | NEWLINE         | Delimiter            | \n
+8     | 1     | KW_INTEGER      | Keyword              | integer
+8     | 9     | ERROR           | Invalid              | 1Sample
+8     | 17    | ASSIGN          | Assignment Operator  | =
+8     | 19    | INT_LIT         | Constant             | 5
+8     | 20    | NEWLINE         | Delimiter            | \n
+9     | 1     | LINE_COMMENT    | Comment              | # 2. Decimal literal followed by a letter:
+9     | 43    | NEWLINE         | Delimiter            | \n
+10    | 1     | KW_DECIMAL      | Keyword              | decimal
+10    | 9     | IDENT           | Identifier           | height
+10    | 16    | ASSIGN          | Assignment Operator  | =
+10    | 18    | ERROR           | Invalid              | 1.75m
+10    | 23    | NEWLINE         | Delimiter            | \n
+11    | 1     | LINE_COMMENT    | Comment              | # 3. Decimal point with no digit after it:
+11    | 43    | NEWLINE         | Delimiter            | \n
+12    | 1     | KW_DECIMAL      | Keyword              | decimal
+12    | 9     | IDENT           | Identifier           | pi
+12    | 12    | ASSIGN          | Assignment Operator  | =
+12    | 14    | ERROR           | Invalid              | 3.
+12    | 16    | NEWLINE         | Delimiter            | \n
+13    | 1     | LINE_COMMENT    | Comment              | # 4. Decimal point with no digit before it (the . is reported, 5 is still read):
+13    | 81    | NEWLINE         | Delimiter            | \n
+14    | 1     | KW_DECIMAL      | Keyword              | decimal
+14    | 9     | IDENT           | Identifier           | half
+14    | 14    | ASSIGN          | Assignment Operator  | =
+14    | 16    | ERROR           | Invalid              | .
+14    | 17    | INT_LIT         | Constant             | 5
+14    | 18    | NEWLINE         | Delimiter            | \n\n
+16    | 1     | LINE_COMMENT    | Comment              | # --- Character literals ---
+16    | 29    | NEWLINE         | Delimiter            | \n
+17    | 1     | LINE_COMMENT    | Comment              | # 5. Empty character literal:
+17    | 30    | NEWLINE         | Delimiter            | \n
+18    | 1     | KW_CHARACTER    | Keyword              | character
+18    | 11    | IDENT           | Identifier           | empty
+18    | 17    | ASSIGN          | Assignment Operator  | =
+18    | 19    | ERROR           | Invalid              | ''
+18    | 21    | NEWLINE         | Delimiter            | \n
+19    | 1     | LINE_COMMENT    | Comment              | # 6. More than one character in a character literal:
+19    | 53    | NEWLINE         | Delimiter            | \n
+20    | 1     | KW_CHARACTER    | Keyword              | character
+20    | 11    | IDENT           | Identifier           | two
+20    | 15    | ASSIGN          | Assignment Operator  | =
+20    | 17    | ERROR           | Invalid              | 'ab'
+20    | 21    | NEWLINE         | Delimiter            | \n
+21    | 1     | LINE_COMMENT    | Comment              | # 7. Character literal never closed:
+21    | 37    | NEWLINE         | Delimiter            | \n
+22    | 1     | KW_CHARACTER    | Keyword              | character
+22    | 11    | IDENT           | Identifier           | open
+22    | 16    | ASSIGN          | Assignment Operator  | =
+22    | 18    | ERROR           | Invalid              | 'x
+22    | 20    | NEWLINE         | Delimiter            | \n\n
+24    | 1     | LINE_COMMENT    | Comment              | # --- String literals ---
+24    | 26    | NEWLINE         | Delimiter            | \n
+25    | 1     | LINE_COMMENT    | Comment              | # 8. String never closed (a string cannot continue onto the next line):
+25    | 72    | NEWLINE         | Delimiter            | \n
+26    | 1     | KW_STRING       | Keyword              | string
+26    | 8     | IDENT           | Identifier           | title
+26    | 14    | ASSIGN          | Assignment Operator  | =
+26    | 16    | ERROR           | Invalid              | "Sample
+26    | 23    | NEWLINE         | Delimiter            | \n
+27    | 1     | LINE_COMMENT    | Comment              | # 9. A # inside an unclosed string is part of the string, not a comment:
+27    | 73    | NEWLINE         | Delimiter            | \n
+28    | 1     | KW_STRING       | Keyword              | string
+28    | 8     | IDENT           | Identifier           | note
+28    | 13    | ASSIGN          | Assignment Operator  | =
+28    | 15    | ERROR           | Invalid              | "Total # not a comment
+28    | 37    | NEWLINE         | Delimiter            | \n\n
+30    | 1     | LINE_COMMENT    | Comment              | # --- Symbols outside the language ---
+30    | 39    | NEWLINE         | Delimiter            | \n
+31    | 1     | LINE_COMMENT    | Comment              | # 10. Symbols that are not part of the language (two errors, @ and $):
+31    | 71    | NEWLINE         | Delimiter            | \n
+32    | 1     | KW_INTEGER      | Keyword              | integer
+32    | 9     | IDENT           | Identifier           | total
+32    | 15    | ASSIGN          | Assignment Operator  | =
+32    | 17    | INT_LIT         | Constant             | 10
+32    | 20    | ERROR           | Invalid              | @
+32    | 22    | INT_LIT         | Constant             | 2
+32    | 24    | ERROR           | Invalid              | $
+32    | 26    | INT_LIT         | Constant             | 1
+32    | 27    | NEWLINE         | Delimiter            | \n
+33    | 1     | LINE_COMMENT    | Comment              | # 11. != is not an operator, use not= instead:
+33    | 47    | NEWLINE         | Delimiter            | \n
+34    | 1     | KW_BOOLEAN      | Keyword              | boolean
+34    | 9     | IDENT           | Identifier           | different
+34    | 19    | ASSIGN          | Assignment Operator  | =
+34    | 21    | IDENT           | Identifier           | age
+34    | 25    | ERROR           | Invalid              | !
+34    | 26    | ASSIGN          | Assignment Operator  | =
+34    | 28    | INT_LIT         | Constant             | 20
+34    | 30    | NEWLINE         | Delimiter            | \n
+35    | 1     | LINE_COMMENT    | Comment              | # 12. Semicolons are not used, a newline ends a statement:
+35    | 59    | NEWLINE         | Delimiter            | \n
+36    | 1     | KW_INTEGER      | Keyword              | integer
+36    | 9     | IDENT           | Identifier           | count
+36    | 15    | ASSIGN          | Assignment Operator  | =
+36    | 17    | INT_LIT         | Constant             | 5
+36    | 18    | ERROR           | Invalid              | ;
+36    | 19    | NEWLINE         | Delimiter            | \n
+37    | 1     | LINE_COMMENT    | Comment              | # 13. C-style && is not an operator, use and instead (two errors, & and &):
+37    | 76    | NEWLINE         | Delimiter            | \n
+38    | 1     | KW_BOOLEAN      | Keyword              | boolean
+38    | 9     | IDENT           | Identifier           | both
+38    | 14    | ASSIGN          | Assignment Operator  | =
+38    | 16    | KW_TRUE         | Constant             | true
+38    | 21    | ERROR           | Invalid              | &
+38    | 22    | ERROR           | Invalid              | &
+38    | 24    | KW_FALSE        | Constant             | false
+38    | 29    | NEWLINE         | Delimiter            | \n\n
+40    | 1     | LINE_COMMENT    | Comment              | # --- Comments ---
+40    | 19    | NEWLINE         | Delimiter            | \n
+41    | 1     | LINE_COMMENT    | Comment              | # 14. Block comment never closed (kept last because it swallows the rest of the file):
+41    | 87    | NEWLINE         | Delimiter            | \n
+42    | 1     | ERROR           | Invalid              | /* this comment never ends\n
+43    | 1     | EOF             | End of File          | 
