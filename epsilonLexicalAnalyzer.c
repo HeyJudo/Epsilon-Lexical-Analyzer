@@ -56,6 +56,7 @@ typedef enum {
     TOKEN_MODULO_ASSIGN,
     TOKEN_EXPONENT_ASSIGN,
     TOKEN_EQUAL,
+    TOKEN_NOT_EQUAL,
     TOKEN_LESS_THAN,
     TOKEN_GREATER_THAN,
     TOKEN_LESS_THAN_OR_EQUAL,
@@ -131,6 +132,7 @@ static const char *pTokenTypeName[TOKEN_TYPE_COUNT] = {
     [TOKEN_MODULO_ASSIGN] = "PERCENT_EQ",
     [TOKEN_EXPONENT_ASSIGN] = "CARET_EQ",
     [TOKEN_EQUAL] = "EQ",
+    [TOKEN_NOT_EQUAL] = "NOT_EQ",
     [TOKEN_LESS_THAN] = "LT",
     [TOKEN_GREATER_THAN] = "GT",
     [TOKEN_LESS_THAN_OR_EQUAL] = "LE",
@@ -197,6 +199,7 @@ static const char *pTokenClassificationName[TOKEN_TYPE_COUNT] = {
     [TOKEN_MODULO_ASSIGN] = "Assignment Operator",
     [TOKEN_EXPONENT_ASSIGN] = "Assignment Operator",
     [TOKEN_EQUAL] = "Boolean Operator",
+    [TOKEN_NOT_EQUAL] = "Boolean Operator",
     [TOKEN_LESS_THAN] = "Boolean Operator",
     [TOKEN_GREATER_THAN] = "Boolean Operator",
     [TOKEN_LESS_THAN_OR_EQUAL] = "Boolean Operator",
@@ -253,7 +256,8 @@ enum {
     STATE_CHARACTER_EMPTY = 159,
     STATE_CHARACTER_EXTRA = 160,
     STATE_CHARACTER_EXTRA_CLOSE = 161,
-    STATE_NUMBER_SUFFIX = 162
+    STATE_NUMBER_SUFFIX = 162,
+    STATE_NOT_EQUAL = 163
 };
 
 static int transitionTable[MAX_STATES][CHARACTER_COUNT];
@@ -500,6 +504,9 @@ static void addKeywordStates(void) {
     addKeyword("variance", 102, TOKEN_FUNCTION_VARIANCE);
     addKeyword("vector", 107, TOKEN_KEYWORD_VECTOR);
     addKeyword("while", 112, TOKEN_KEYWORD_WHILE);
+
+    addTransition(69, '=', STATE_NOT_EQUAL);
+    acceptedTokenType[STATE_NOT_EQUAL] = TOKEN_NOT_EQUAL;
 }
 
 static void buildTransitionTable(void) {
