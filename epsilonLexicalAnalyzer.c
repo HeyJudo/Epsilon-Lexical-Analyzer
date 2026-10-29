@@ -69,6 +69,7 @@ typedef enum {
     TOKEN_RIGHT_BRACE,
     TOKEN_COMMA,
     TOKEN_COLON,
+    TOKEN_PERIOD,
     TOKEN_TYPE_COUNT
 } tokenTypeList;
 
@@ -144,7 +145,8 @@ static const char *pTokenTypeName[TOKEN_TYPE_COUNT] = {
     [TOKEN_LEFT_BRACE] = "LBRACE",
     [TOKEN_RIGHT_BRACE] = "RBRACE",
     [TOKEN_COMMA] = "COMMA",
-    [TOKEN_COLON] = "COLON"
+    [TOKEN_COLON] = "COLON",
+    [TOKEN_PERIOD] = "PERIOD"
 };
 
 static const char *pTokenClassificationName[TOKEN_TYPE_COUNT] = {
@@ -170,9 +172,9 @@ static const char *pTokenClassificationName[TOKEN_TYPE_COUNT] = {
     [TOKEN_KEYWORD_ELIF] = "Keyword",
     [TOKEN_KEYWORD_ELSE] = "Keyword",
     [TOKEN_KEYWORD_WHILE] = "Keyword",
-    [TOKEN_KEYWORD_AND] = "Boolean Operator",
-    [TOKEN_KEYWORD_OR] = "Boolean Operator",
-    [TOKEN_KEYWORD_NOT] = "Boolean Operator",
+    [TOKEN_KEYWORD_AND] = "Keyword (Boolean Operator)",
+    [TOKEN_KEYWORD_OR] = "Keyword (Boolean Operator)",
+    [TOKEN_KEYWORD_NOT] = "Keyword (Boolean Operator)",
     [TOKEN_KEYWORD_TRUE] = "Constant",
     [TOKEN_KEYWORD_FALSE] = "Constant",
     [TOKEN_FUNCTION_MEAN] = "Reserved Word",
@@ -204,14 +206,15 @@ static const char *pTokenClassificationName[TOKEN_TYPE_COUNT] = {
     [TOKEN_GREATER_THAN] = "Boolean Operator",
     [TOKEN_LESS_THAN_OR_EQUAL] = "Boolean Operator",
     [TOKEN_GREATER_THAN_OR_EQUAL] = "Boolean Operator",
-    [TOKEN_LEFT_PARENTHESIS] = "Bracket",
-    [TOKEN_RIGHT_PARENTHESIS] = "Bracket",
-    [TOKEN_LEFT_BRACKET] = "Bracket",
-    [TOKEN_RIGHT_BRACKET] = "Bracket",
-    [TOKEN_LEFT_BRACE] = "Bracket",
-    [TOKEN_RIGHT_BRACE] = "Bracket",
+    [TOKEN_LEFT_PARENTHESIS] = "Delimiter",
+    [TOKEN_RIGHT_PARENTHESIS] = "Delimiter",
+    [TOKEN_LEFT_BRACKET] = "Delimiter",
+    [TOKEN_RIGHT_BRACKET] = "Delimiter",
+    [TOKEN_LEFT_BRACE] = "Delimiter",
+    [TOKEN_RIGHT_BRACE] = "Delimiter",
     [TOKEN_COMMA] = "Delimiter",
-    [TOKEN_COLON] = "Delimiter"
+    [TOKEN_COLON] = "Delimiter",
+    [TOKEN_PERIOD] = "Delimiter"
 };
 
 const char *pTokenName(tokenTypeList tokenType) {
@@ -257,7 +260,8 @@ enum {
     STATE_CHARACTER_EXTRA = 160,
     STATE_CHARACTER_EXTRA_CLOSE = 161,
     STATE_NUMBER_SUFFIX = 162,
-    STATE_NOT_EQUAL = 163
+    STATE_NOT_EQUAL = 163,
+    STATE_PERIOD = 164
 };
 
 static int transitionTable[MAX_STATES][CHARACTER_COUNT];
@@ -475,6 +479,7 @@ static void addDelimiterStates(void) {
     addSymbol(')', 148, TOKEN_RIGHT_PARENTHESIS);
     addSymbol('[', 131, TOKEN_LEFT_BRACKET);
     addSymbol(']', 149, TOKEN_RIGHT_BRACKET);
+    addSymbol('.', STATE_PERIOD, TOKEN_PERIOD);
 }
 
 static void addKeywordStates(void) {
@@ -694,8 +699,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Cannot create symbol table: %s.\n", pTablePath);
         exit(1);
     }
-    fprintf(pSymbolTable, "%-5s | %-5s | %-15s | %-20s | %s\n", "LINE", "COL", "TOKEN", "CLASSIFICATION", "LEXEME");
-    fprintf(pSymbolTable, "---------------------------------------------------------------\n");
+    fprintf(pSymbolTable, "%-5s | %-5s | %-15s | %-26s | %s\n", "LINE", "COL", "TOKEN", "CLASSIFICATION", "LEXEME");
+    fprintf(pSymbolTable, "---------------------------------------------------------------------\n");
 
     lexerState lexer;
     initializeLexer(&lexer, pSourceCode);
@@ -713,7 +718,7 @@ int main(int argc, char *argv[]) {
         printf("%-5d %-15s ", t.sourceLineNumber, pTokenName(t.tokenType));
         printLexeme(stdout, t.pLexemeText);
         putchar('\n');
-        fprintf(pSymbolTable, "%-5d | %-5d | %-15s | %-20s | ", t.sourceLineNumber, t.sourceColumnNumber, pTokenName(t.tokenType), pTokenClassification(t.tokenType));
+        fprintf(pSymbolTable, "%-5d | %-5d | %-15s | %-26s | ", t.sourceLineNumber, t.sourceColumnNumber, pTokenName(t.tokenType), pTokenClassification(t.tokenType));
         printLexeme(pSymbolTable, t.pLexemeText);
         fputc('\n', pSymbolTable);
         free(t.pLexemeText);
