@@ -1,6 +1,29 @@
+/*
+ * εpsilon LEXICAL ANALYZER - study copy with explanations.
+ *
+ * WHAT IT DOES IN ONE SENTENCE:
+ *   It reads a .epl file one character at a time and walks through a fixed
+ *   DFA (a table of states) to cut the text into tokens.
+ *
+ * THE IDEA:
+ *   1. Start in state q0.
+ *   2. Look at the next character.
+ *   3. Look up "from this state, on this character, which state is next?"
+ *      in the table.
+ *   4. If there is a next state: go there, keep the character, repeat.
+ *   5. If there is no next state: stop. The state you are in says what the
+ *      token is (or that it is an error).
+ *
+ * Only two libraries are used: stdio.h (files, printing) and stdlib.h
+ * (memory). There is no string.h, so no strcmp() exists in this program.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+ * Every kind of token the lexer can produce gets a number.
+ * TOKEN_TYPE_COUNT is not a token; it is just "how many token types there are".
+ */
 enum {
     TOKEN_ERROR,
     TOKEN_END_OF_FILE,
@@ -69,6 +92,10 @@ enum {
     TOKEN_TYPE_COUNT
 };
 
+/*
+ * The short name printed for each token type, e.g. TOKEN_IDENTIFIER -> "IDENT".
+ * This is only used for PRINTING. It is never used to decide what a word is.
+ */
 static const char *tokenName[TOKEN_TYPE_COUNT] = {
     [TOKEN_ERROR] = "ERROR",
     [TOKEN_END_OF_FILE] = "EOF",
@@ -136,36 +163,71 @@ static const char *tokenName[TOKEN_TYPE_COUNT] = {
     [TOKEN_COLON] = "COLON"
 };
 
+/*
+ * Character classes. Every character read is put in one of these groups,
+ * so the table can say "any letter goes to q1" in one entry instead of 53.
+ *   LETTER  = a-z, A-Z and _      DIGIT = 0-9
+ *   UNKNOWN = everything else     END_OF_FILE = no more characters
+ */
 #define LETTER 0
 #define DIGIT 1
 #define UNKNOWN 2
 #define END_OF_FILE 3
 
-static int charClass;
-static char *lexeme;
-static int lexLen;
-static int lexCapacity;
-static int nextChar;
-static int nextToken;
-static const char *errorMessage;
-static FILE *in_fp;
+/* What the lexer is looking at right now. */
+static int charClass;           /* class of nextChar (LETTER, DIGIT, ...)     */
+static char *lexeme;            /* the characters of the current token        */
+static int lexLen;              /* how many characters are in lexeme          */
+static int lexCapacity;         /* how much room lexeme has                   */
+static int nextChar;            /* the next character, not yet used (lookahead) */
+static int nextToken;           /* the token type found by lex()              */
+static const char *errorMessage;/* the error message, if the token is ERROR   */
+static FILE *in_fp;             /* the .epl file being read                   */
 
-static int currentLine = 1;
-static int currentColumn = 1;
-static int tokenLine;
-static int tokenColumn;
+/* Where we are in the file, for error messages and the Symbol Table. */
+static int currentLine = 1;     /* line of nextChar                           */
+static int currentColumn = 1;   /* column of nextChar                         */
+static int tokenLine;           /* line where the current token started       */
+static int tokenColumn;         /* column where the current token started     */
 
-#define START 0
-#define STOP -1
-#define STATE_COUNT 164
+#define START 0                 /* q0, the start state                        */
+#define STOP -1                 /* "no transition" for one specific character */
+#define STATE_COUNT 164         /* states q0 to q163                          */
 
+/*
+ * ONE STATE OF THE DFA.
+ *   token      What the token is if we STOP in this state.
+ *              TOKEN_ERROR means "stopping here is a lexical error".
+ *   charNext   Arrows for single characters: charNext['='] = 117 means
+ *              "on '=' go to q117". 0 = no arrow listed for this character.
+ *              STOP = there is definitely no arrow for this character.
+ *   classNext  Arrows for whole groups: classNext[LETTER] = 1 means
+ *              "on any letter go to q1". Used only when charNext has 0.
+ *              0 = no arrow.
+ *
+ * Why 0 can mean "no arrow": no state ever goes BACK to q0, so 0 is never a
+ * real destination.
+ */
 typedef struct {
     int token;
     int classNext[3];
     int charNext[256];
 } dfaState;
 
+/*
+ * THE DFA. This is the whole automaton from the diagrams, written out
+ * state by state. It is "static const": it is fixed when the program is
+ * compiled and can never be changed or added to while the program runs.
+ * This is the answer to "the transitions must not be created dynamically".
+ *
+ * It is a PARTIAL DFA (same as the diagrams): there is no trap state.
+ * A missing arrow simply means "stop here".
+ */
 static const dfaState dfa[STATE_COUNT] = {
+    /* q0 START. Each listed character goes to the state that begins its token
+       (e.g. '+' -> q116, 'a' -> q2 for "and"). Letters not listed go to q1
+       (identifier), digits go to q113 (integer). Blanks are skipped before
+       we get here, by getNonBlank(). */
     [0] = { TOKEN_ERROR, { 1, 113, 0 }, {
         ['\n'] = 158, ['"'] = 142, ['#'] = 150, ['%'] = 125, ['\''] = 139, ['('] = 147, [')'] = 148, ['*'] = 120,
         ['+'] = 116, [','] = 138, ['-'] = 118, ['/'] = 122, [':'] = 137, ['<'] = 133, ['='] = 129, ['>'] = 135,
@@ -173,8 +235,17 @@ static const dfaState dfa[STATE_COUNT] = {
         ['f'] = 34, ['i'] = 42, ['l'] = 53, ['m'] = 56, ['n'] = 67, ['o'] = 70, ['p'] = 73, ['s'] = 78,
         ['t'] = 84, ['u'] = 90, ['v'] = 95, ['w'] = 108, ['{'] = 145, ['}'] = 146
     } },
+    /* q1 IDENTIFIER: any letter, digit or _ stays in q1. */
     [1] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { 0 } },
 
+    /* q2-q112 KEYWORDS, NOISE WORDS, RESERVED WORDS, true/false.
+       Each word is a chain of states, one per letter. Example "and":
+         q0 -a-> q2 -n-> q3 -d-> q4 (KEYWORD and)
+       q2 and q3 are IDENTIFIER states: if the input is "an" and then a space,
+       we stop in q3 and get an identifier "an". Any other letter/digit/_ goes
+       to q1, so "andy" is an identifier and so is "and_1".
+       THIS is how keywords are found without comparing strings: the word is
+       recognized letter by letter, by the states it passes through. */
     [2] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { ['n'] = 3 } },
     [3] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { ['d'] = 4 } },
     [4] = { TOKEN_KEYWORD_AND, { 1, 1, 0 }, { 0 } },
@@ -287,10 +358,20 @@ static const dfaState dfa[STATE_COUNT] = {
     [111] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { ['e'] = 112 } },
     [112] = { TOKEN_KEYWORD_WHILE, { 1, 1, 0 }, { 0 } },
 
+    /* q113-q115 NUMBERS.
+         q113 INTEGER  (digits)            e.g. 45
+         q114 not accepting (digits + '.') e.g. "5." stops here = error
+         q115 DECIMAL  (digits.digits)     e.g. 115.5
+       A letter or _ right after a number goes to q162 (see below). */
     [113] = { TOKEN_INTEGER_LITERAL, { 162, 113, 0 }, { ['.'] = 114 } },
     [114] = { TOKEN_ERROR, { 0, 115, 0 }, { 0 } },
     [115] = { TOKEN_DECIMAL_LITERAL, { 162, 115, 0 }, { 0 } },
 
+    /* q116-q130 OPERATORS. Each one is "symbol" or "symbol followed by =":
+         q116 +   then '=' -> q117 +=
+       The longer one wins because we keep reading while there is an arrow.
+       '/' (q122) has three ways on: '/' -> q123 //, '=' -> q124 /=,
+       '*' -> q154 (start of a block comment). */
     [116] = { TOKEN_PLUS, { 0, 0, 0 }, { ['='] = 117 } },
     [117] = { TOKEN_PLUS_ASSIGN, { 0, 0, 0 }, { 0 } },
     [118] = { TOKEN_MINUS, { 0, 0, 0 }, { ['='] = 119 } },
@@ -306,43 +387,78 @@ static const dfaState dfa[STATE_COUNT] = {
     [128] = { TOKEN_EXPONENT_ASSIGN, { 0, 0, 0 }, { 0 } },
     [129] = { TOKEN_ASSIGN, { 0, 0, 0 }, { ['='] = 130 } },
     [130] = { TOKEN_EQUAL, { 0, 0, 0 }, { 0 } },
+    /* q131 '['. (There is no q132.) */
     [131] = { TOKEN_LEFT_BRACKET, { 0, 0, 0 }, { 0 } },
+    /* q133-q136 < <= > >= */
     [133] = { TOKEN_LESS_THAN, { 0, 0, 0 }, { ['='] = 134 } },
     [134] = { TOKEN_LESS_THAN_OR_EQUAL, { 0, 0, 0 }, { 0 } },
     [135] = { TOKEN_GREATER_THAN, { 0, 0, 0 }, { ['='] = 136 } },
     [136] = { TOKEN_GREATER_THAN_OR_EQUAL, { 0, 0, 0 }, { 0 } },
+    /* q137 ':'   q138 ',' */
     [137] = { TOKEN_COLON, { 0, 0, 0 }, { 0 } },
     [138] = { TOKEN_COMMA, { 0, 0, 0 }, { 0 } },
 
+    /* q139-q141 CHARACTER LITERAL 'A'.
+         q0 -'-> q139 -A-> q140 -'-> q141 (CHAR_LIT)
+       q139 and q140 are not accepting: stopping there = "not closed".
+       A newline (\n or \r) is STOP: a char literal cannot go to the next line.
+       Extra cases are q159-q161 below. */
     [139] = { TOKEN_ERROR, { 140, 140, 140 }, { ['\n'] = STOP, ['\r'] = STOP, ['\''] = 159 } },
     [140] = { TOKEN_ERROR, { 160, 160, 160 }, { ['\n'] = STOP, ['\r'] = STOP, ['\''] = 141 } },
     [141] = { TOKEN_CHARACTER_LITERAL, { 0, 0, 0 }, { 0 } },
+    /* q142-q144 STRING LITERAL "text".
+         q0 -"-> q142 -text-> q143 (loops) -"-> q144 (STR_LIT)
+       q142 -"-> q144 directly gives the empty string "".
+       A newline is STOP: a string cannot go to the next line. */
     [142] = { TOKEN_ERROR, { 143, 143, 143 }, { ['\n'] = STOP, ['\r'] = STOP, ['"'] = 144 } },
     [143] = { TOKEN_ERROR, { 143, 143, 143 }, { ['\n'] = STOP, ['\r'] = STOP, ['"'] = 144 } },
     [144] = { TOKEN_STRING_LITERAL, { 0, 0, 0 }, { 0 } },
+    /* q145 {   q146 }   q147 (   q148 )   q149 ] */
     [145] = { TOKEN_LEFT_BRACE, { 0, 0, 0 }, { 0 } },
     [146] = { TOKEN_RIGHT_BRACE, { 0, 0, 0 }, { 0 } },
     [147] = { TOKEN_LEFT_PARENTHESIS, { 0, 0, 0 }, { 0 } },
     [148] = { TOKEN_RIGHT_PARENTHESIS, { 0, 0, 0 }, { 0 } },
     [149] = { TOKEN_RIGHT_BRACKET, { 0, 0, 0 }, { 0 } },
 
+    /* q150-q151 LINE COMMENT: # and everything up to (not including) the
+       end of the line. Both states accept. (There is no q152 or q153.) */
     [150] = { TOKEN_LINE_COMMENT, { 151, 151, 151 }, { ['\n'] = STOP, ['\r'] = STOP } },
     [151] = { TOKEN_LINE_COMMENT, { 151, 151, 151 }, { ['\n'] = STOP, ['\r'] = STOP } },
 
+    /* q154-q157 BLOCK COMMENT, from slash-star to star-slash
+       (entered from '/' on '*').
+         q155 = inside the comment
+         q156 = "the last character was *"; a '/' now closes it -> q157
+       If the file ends while we are in q154-q156: "not terminated". */
     [154] = { TOKEN_ERROR, { 155, 155, 155 }, { ['*'] = 156 } },
     [155] = { TOKEN_ERROR, { 155, 155, 155 }, { ['*'] = 156 } },
     [156] = { TOKEN_ERROR, { 155, 155, 155 }, { ['*'] = 156, ['/'] = 157 } },
     [157] = { TOKEN_BLOCK_COMMENT, { 0, 0, 0 }, { 0 } },
+    /* q158 NEWLINE: a \n, plus any blank lines and indentation after it,
+       becomes ONE NEWLINE token (the statement terminator). */
     [158] = { TOKEN_NEWLINE, { 0, 0, 0 }, { ['\t'] = 158, ['\n'] = 158, ['\v'] = 158, ['\f'] = 158, ['\r'] = 158, [' '] = 158 } },
 
+    /* q159-q161 BAD CHARACTER LITERALS. They keep reading so the whole bad
+       literal becomes ONE error:
+         q159 ''      (empty)
+         q160 'ab...  (too many characters, still reading)
+         q161 'ab'    (too many characters, closed) */
     [159] = { TOKEN_ERROR, { 0, 0, 0 }, { 0 } },
     [160] = { TOKEN_ERROR, { 160, 160, 160 }, { ['\n'] = STOP, ['\r'] = STOP, ['\''] = 161 } },
     [161] = { TOKEN_ERROR, { 0, 0, 0 }, { 0 } },
 
+    /* q162 BAD NUMBER: a number followed by a letter or _, e.g. 3stats.
+       It keeps reading so "3stats" is ONE error, not "3" and "stats". */
     [162] = { TOKEN_ERROR, { 162, 162, 0 }, { 0 } },
+    /* q163 not= : reached from q69 ("not") on '='. */
     [163] = { TOKEN_NOT_EQUAL, { 0, 0, 0 }, { 0 } },
 };
 
+/*
+ * ERROR MESSAGES, one per non-accepting state (the table in doc 5.1.1).
+ * If lex() stops in one of these states, this is the message printed.
+ * Also fixed at compile time.
+ */
 static const char *stateErrorMessage[STATE_COUNT] = {
     [114] = "Decimal point must be followed by a digit!",
     [139] = "Char literal not closed!",
@@ -358,6 +474,12 @@ static const char *stateErrorMessage[STATE_COUNT] = {
     [162] = "A number can't be followed by a letter or '_'!",
 };
 
+/*
+ * getChar(): READ ONE CHARACTER from the file into nextChar and put it in
+ * its class (LETTER, DIGIT, UNKNOWN or END_OF_FILE).
+ * This is the only place the program reads the source code, and it reads
+ * exactly one character each time.
+ */
 static void getChar(void) {
     nextChar = getc(in_fp);
     if (nextChar == EOF) {
@@ -371,6 +493,10 @@ static void getChar(void) {
     }
 }
 
+/*
+ * advance(): we are done with nextChar. Update the line/column counter
+ * (a \n starts a new line) and read the next character.
+ */
 static void advance(void) {
     if (nextChar == '\n') {
         currentLine++;
@@ -381,6 +507,10 @@ static void advance(void) {
     getChar();
 }
 
+/*
+ * addChar(): KEEP nextChar as part of the current token (add it to lexeme),
+ * then move on with advance(). The lexeme grows 100 characters at a time.
+ */
 static void addChar(void) {
     if (lexLen == lexCapacity) {
         lexCapacity += 100;
@@ -394,12 +524,25 @@ static void addChar(void) {
     advance();
 }
 
+/*
+ * getNonBlank(): SKIP spaces, tabs, \r, \v and \f between tokens.
+ * This is the q0 self-loop in the diagrams. \n is NOT skipped, because a
+ * newline is a token (it ends a statement).
+ */
 static void getNonBlank(void) {
     while (nextChar == ' ' || nextChar == '\t' || nextChar == '\r' || nextChar == '\v' || nextChar == '\f') {
         advance();
     }
 }
 
+/*
+ * getNextState(state): ONE TRANSITION. "From this state, reading nextChar,
+ * where do I go?" It only LOOKS UP the answer in the fixed table:
+ *   1. Is there an arrow for this exact character?  (charNext)
+ *   2. If not, is there an arrow for its group?     (classNext)
+ * Returns the next state, or 0 / STOP if there is no arrow.
+ * At the end of the file there are never any arrows.
+ */
 static int getNextState(int state) {
     if (charClass == END_OF_FILE) {
         return STOP;
@@ -411,6 +554,23 @@ static int getNextState(int state) {
     return next;
 }
 
+/*
+ * lex(): FIND ONE TOKEN. This is the DFA simulation.
+ *
+ *   1. Skip blanks and remember where the token starts (line, column).
+ *   2. Nothing left in the file? Then the token is EOF.
+ *   3. Start in q0. While the next character has an arrow:
+ *        go to that state and keep the character.
+ *   4. No more arrows: STOP and look at the state we are in.
+ *        - Still q0 (not even the first character had an arrow,
+ *          e.g. '@'): take that one character as an
+ *          "Unexpected character!" error.
+ *        - Any other state: its "token" field is the answer. If that is
+ *          TOKEN_ERROR, also take its message.
+ *
+ * Example "+=":  q0 -+-> q116 -=-> q117, next char ' ' has no arrow,
+ *                stop in q117 -> PLUS_EQ.
+ */
 static int lex(void) {
     int state = START;
     int next;
@@ -424,10 +584,12 @@ static int lex(void) {
         nextToken = TOKEN_END_OF_FILE;
         return nextToken;
     }
+    /* Step 3: follow arrows as long as there are any. */
     while ((next = getNextState(state)) > 0) {
         state = next;
         addChar();
     }
+    /* Step 4: no more arrows - decide the token from the state. */
     if (state == START) {
         addChar();
         nextToken = TOKEN_ERROR;
@@ -441,6 +603,10 @@ static int lex(void) {
     return nextToken;
 }
 
+/*
+ * printLexeme(): print the token's text. A newline is shown as \n and a tab
+ * as \t so every token fits on one line of output; \r is left out.
+ */
 static void printLexeme(FILE *out) {
     for (int i = 0; i < lexLen; i++) {
         if (lexeme[i] == '\n') {
@@ -453,6 +619,13 @@ static void printLexeme(FILE *out) {
     }
 }
 
+/*
+ * hasEpsilonExtension(): does the file name end in ".epl"?
+ * Checked with a tiny state machine, not strcmp():
+ *   '.' -> state 1, then 'e' -> 2, 'p' -> 3, 'l' -> 4.
+ *   Anything else resets to 0. The name is accepted if it ends in state 4.
+ * "i > 0" means a file called just ".epl" is rejected.
+ */
 static int hasEpsilonExtension(const char *path) {
     int state = 0;
     for (int i = 0; path[i] != '\0'; i++) {
@@ -471,6 +644,11 @@ static int hasEpsilonExtension(const char *path) {
     return state == 4;
 }
 
+/*
+ * makeSymbolTablePath(): build "<folder of the .epl file>/Symbol Table.txt".
+ * It finds the last / or \ in the path and copies the folder part, then
+ * adds the file name, one character at a time.
+ */
 static char *makeSymbolTablePath(const char *sourcePath) {
     static const char fileName[] = "Symbol Table.txt";
     int folderLength = 0;
@@ -493,6 +671,11 @@ static char *makeSymbolTablePath(const char *sourcePath) {
     return path;
 }
 
+/*
+ * containsNulByte(): read the whole file once looking for a NUL byte (0).
+ * Such files are rejected before scanning (doc 5.2.3). If the file is fine,
+ * rewind() goes back to the start so scanning can begin.
+ */
 static int containsNulByte(FILE *file) {
     int character;
     while ((character = getc(file)) != EOF) {
@@ -504,6 +687,16 @@ static int containsNulByte(FILE *file) {
     return 0;
 }
 
+/*
+ * main(): THE WHOLE PROGRAM.
+ *   1. Check the file: given? ends in .epl? opens? no NUL byte?
+ *   2. Create Symbol Table.txt next to the .epl file and print the headers.
+ *   3. Read the first character (getChar), then call lex() again and again.
+ *      Each token is printed to the screen and written to the Symbol Table.
+ *      An ERROR token also prints a "^ lexical error" line and is counted.
+ *      Errors do not stop the program; it keeps going until EOF.
+ *   4. Print the summary and return 1 if there were errors, 0 if not.
+ */
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <file.epl>\n", argv[0]);
@@ -537,12 +730,12 @@ int main(int argc, char *argv[]) {
     fprintf(symbolTable, "%-5s | %-5s | %-15s | %s\n", "LINE", "COL", "TOKEN", "LEXEME");
     fprintf(symbolTable, "----------------------------------------\n");
 
-    int tokenCount = 0;
-    int errorCount = 0;
+    int tokenCount = 0;          /* every token except EOF                 */
+    int errorCount = 0;          /* ERROR tokens only                      */
     int isFinished = 0;
-    getChar();
+    getChar();                   /* read the first character (lookahead)   */
     while (isFinished == 0) {
-        lex();
+        lex();                   /* find the next token                    */
 
         printf("%-5d %-15s ", tokenLine, tokenName[nextToken]);
         printLexeme(stdout);
