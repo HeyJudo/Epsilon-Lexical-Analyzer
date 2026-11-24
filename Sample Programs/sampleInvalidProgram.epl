@@ -1,0 +1,46 @@
+# This program should be an INVALID .epl file.
+/* Multiple errors should be reported. The purpose of this program is to test whether
+   the lexer catches every kind of lexical error and keeps going after each one.
+   Every line after a numbered comment holds one lexical error, unless noted. */
+
+# --- Numbers ---
+# 1. Identifier starting with a digit:
+integer 1Sample = 5
+# 2. Decimal literal followed by a letter:
+decimal height = 1.75m
+# 3. Decimal point with no digit after it:
+decimal pi = 3.
+# 4. Decimal point with no digit before it (the . is reported, 5 is still read):
+decimal half = .5
+
+# --- Character literals ---
+# 5. Empty character literal:
+character empty = ''
+# 6. More than one character in a character literal:
+character two = 'ab'
+# 7. Character literal never closed:
+character open = 'x
+
+# --- String literals ---
+# 8. String never closed (a string cannot continue onto the next line):
+string title = "Sample
+# 9. A # inside an unclosed string is part of the string, not a comment:
+string note = "Total # not a comment
+
+# --- Symbols outside the language ---
+# 10. Symbols that are not part of the language (two errors, @ and $):
+integer total = 10 @ 2 $ 1
+# 11. != is not an operator, use not= instead:
+boolean different = age != 20
+# 12. Semicolons are not used, a newline ends a statement:
+integer count = 5;
+# 13. C-style && is not an operator, use and instead (two errors, & and &):
+boolean both = true && false
+
+# --- Comments ---
+# 14. Block comment never closed (kept last because it swallows the rest of the file):
+/* this comment never ends
+
+
+
+

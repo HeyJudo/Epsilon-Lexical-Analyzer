@@ -1,0 +1,43 @@
+# This program should be a VALID .epl file.
+/* No errors should return. The purpose of this program is to test whether the lexer functions properly. 
+It uses every token category: keywords, reserved words, noise words, constants, operators, etc. */
+
+let string name = "Juan"
+character sex = 'M'
+integer days = 45
+decimal weight = 115.5
+boolean done = false
+vector weights = [50, 51, 52]
+
+input from (days)
+print the mean(weights[0:2])
+print using (median of (weights), mode(weights), variance(weights))
+
+weight /= 2.2
+while weight < 55 and not done{
+    weight += 0.5
+    weight -= 0.1
+    weight *= 1.01
+    done = weight >= 55
+}
+
+decimal growth = 1.01
+growth ^= days // 7
+if done == true or weight / 1.7 ^ 2 > 25{
+    print(name, sex, growth)
+}
+
+elif days % 7 not= 0 and weight <= 50{
+    print(name, 55 - weight)
+}
+
+else{
+    days %= 7
+    print(name, weight * 2.2, days + 1)
+}
+
+
+
+
+
+
