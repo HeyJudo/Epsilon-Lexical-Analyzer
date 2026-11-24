@@ -71,6 +71,7 @@ enum {
 
 static const char *tokenName[TOKEN_TYPE_COUNT] = {
     [TOKEN_ERROR] = "ERROR",
+    [TOKEN_END_OF_FILE] = "EOF",
     [TOKEN_NEWLINE] = "NEWLINE",
     [TOKEN_LINE_COMMENT] = "LINE_COMMENT",
     [TOKEN_BLOCK_COMMENT] = "BLOCK_COMMENT",
@@ -109,7 +110,7 @@ static const char *tokenName[TOKEN_TYPE_COUNT] = {
     [TOKEN_MINUS] = "MINUS",
     [TOKEN_MULTIPLY] = "STAR",
     [TOKEN_DIVIDE] = "SLASH",
-    [TOKEN_FLOOR_DIVIDE] = "FLOOR_DIV",
+    [TOKEN_FLOOR_DIVIDE] = "FLOORDIV",
     [TOKEN_MODULO] = "PERCENT",
     [TOKEN_EXPONENT] = "CARET",
     [TOKEN_ASSIGN] = "ASSIGN",
@@ -146,7 +147,13 @@ static int lexLen;
 static int lexCapacity;
 static int nextChar;
 static int nextToken;
+static const char *errorMessage;
 static FILE *in_fp;
+
+static int currentLine = 1;
+static int currentColumn = 1;
+static int tokenLine;
+static int tokenColumn;
 
 #define START 0
 #define STOP -1
@@ -167,6 +174,7 @@ static const dfaState dfa[STATE_COUNT] = {
         ['t'] = 84, ['u'] = 90, ['v'] = 95, ['w'] = 108, ['{'] = 145, ['}'] = 146
     } },
     [1] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { 0 } },
+
     [2] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { ['n'] = 3 } },
     [3] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { ['d'] = 4 } },
     [4] = { TOKEN_KEYWORD_AND, { 1, 1, 0 }, { 0 } },
@@ -278,9 +286,11 @@ static const dfaState dfa[STATE_COUNT] = {
     [110] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { ['l'] = 111 } },
     [111] = { TOKEN_IDENTIFIER, { 1, 1, 0 }, { ['e'] = 112 } },
     [112] = { TOKEN_KEYWORD_WHILE, { 1, 1, 0 }, { 0 } },
+
     [113] = { TOKEN_INTEGER_LITERAL, { 162, 113, 0 }, { ['.'] = 114 } },
     [114] = { TOKEN_ERROR, { 0, 115, 0 }, { 0 } },
     [115] = { TOKEN_DECIMAL_LITERAL, { 162, 115, 0 }, { 0 } },
+
     [116] = { TOKEN_PLUS, { 0, 0, 0 }, { ['='] = 117 } },
     [117] = { TOKEN_PLUS_ASSIGN, { 0, 0, 0 }, { 0 } },
     [118] = { TOKEN_MINUS, { 0, 0, 0 }, { ['='] = 119 } },
@@ -303,6 +313,7 @@ static const dfaState dfa[STATE_COUNT] = {
     [136] = { TOKEN_GREATER_THAN_OR_EQUAL, { 0, 0, 0 }, { 0 } },
     [137] = { TOKEN_COLON, { 0, 0, 0 }, { 0 } },
     [138] = { TOKEN_COMMA, { 0, 0, 0 }, { 0 } },
+
     [139] = { TOKEN_ERROR, { 140, 140, 140 }, { ['\n'] = STOP, ['\r'] = STOP, ['\''] = 159 } },
     [140] = { TOKEN_ERROR, { 160, 160, 160 }, { ['\n'] = STOP, ['\r'] = STOP, ['\''] = 141 } },
     [141] = { TOKEN_CHARACTER_LITERAL, { 0, 0, 0 }, { 0 } },
@@ -314,18 +325,37 @@ static const dfaState dfa[STATE_COUNT] = {
     [147] = { TOKEN_LEFT_PARENTHESIS, { 0, 0, 0 }, { 0 } },
     [148] = { TOKEN_RIGHT_PARENTHESIS, { 0, 0, 0 }, { 0 } },
     [149] = { TOKEN_RIGHT_BRACKET, { 0, 0, 0 }, { 0 } },
+
     [150] = { TOKEN_LINE_COMMENT, { 151, 151, 151 }, { ['\n'] = STOP, ['\r'] = STOP } },
     [151] = { TOKEN_LINE_COMMENT, { 151, 151, 151 }, { ['\n'] = STOP, ['\r'] = STOP } },
+
     [154] = { TOKEN_ERROR, { 155, 155, 155 }, { ['*'] = 156 } },
     [155] = { TOKEN_ERROR, { 155, 155, 155 }, { ['*'] = 156 } },
     [156] = { TOKEN_ERROR, { 155, 155, 155 }, { ['*'] = 156, ['/'] = 157 } },
     [157] = { TOKEN_BLOCK_COMMENT, { 0, 0, 0 }, { 0 } },
     [158] = { TOKEN_NEWLINE, { 0, 0, 0 }, { ['\t'] = 158, ['\n'] = 158, ['\v'] = 158, ['\f'] = 158, ['\r'] = 158, [' '] = 158 } },
+
     [159] = { TOKEN_ERROR, { 0, 0, 0 }, { 0 } },
     [160] = { TOKEN_ERROR, { 160, 160, 160 }, { ['\n'] = STOP, ['\r'] = STOP, ['\''] = 161 } },
     [161] = { TOKEN_ERROR, { 0, 0, 0 }, { 0 } },
+
     [162] = { TOKEN_ERROR, { 162, 162, 0 }, { 0 } },
     [163] = { TOKEN_NOT_EQUAL, { 0, 0, 0 }, { 0 } },
+};
+
+static const char *stateErrorMessage[STATE_COUNT] = {
+    [114] = "Decimal point must be followed by a digit!",
+    [139] = "Char literal not closed!",
+    [140] = "Char literal not closed!",
+    [142] = "String not terminated!",
+    [143] = "String not terminated!",
+    [154] = "Comment block not terminated!",
+    [155] = "Comment block not terminated!",
+    [156] = "Comment block not terminated!",
+    [159] = "Empty char literal!",
+    [160] = "Char literal not closed!",
+    [161] = "A char literal can only hold exactly one character!",
+    [162] = "A number can't be followed by a letter or '_'!",
 };
 
 static void getChar(void) {
@@ -341,6 +371,16 @@ static void getChar(void) {
     }
 }
 
+static void advance(void) {
+    if (nextChar == '\n') {
+        currentLine++;
+        currentColumn = 1;
+    } else {
+        currentColumn++;
+    }
+    getChar();
+}
+
 static void addChar(void) {
     if (lexLen == lexCapacity) {
         lexCapacity += 100;
@@ -351,11 +391,12 @@ static void addChar(void) {
         }
     }
     lexeme[lexLen++] = (char)nextChar;
+    advance();
 }
 
 static void getNonBlank(void) {
     while (nextChar == ' ' || nextChar == '\t' || nextChar == '\r' || nextChar == '\v' || nextChar == '\f') {
-        getChar();
+        advance();
     }
 }
 
@@ -370,16 +411,15 @@ static int getNextState(int state) {
     return next;
 }
 
-static int lookup(int state) {
-    return dfa[state].token;
-}
-
 static int lex(void) {
     int state = START;
     int next;
 
     lexLen = 0;
+    errorMessage = NULL;
     getNonBlank();
+    tokenLine = currentLine;
+    tokenColumn = currentColumn;
     if (charClass == END_OF_FILE) {
         nextToken = TOKEN_END_OF_FILE;
         return nextToken;
@@ -387,29 +427,30 @@ static int lex(void) {
     while ((next = getNextState(state)) > 0) {
         state = next;
         addChar();
-        getChar();
     }
     if (state == START) {
         addChar();
-        getChar();
+        nextToken = TOKEN_ERROR;
+        errorMessage = "Unexpected character!";
+    } else {
+        nextToken = dfa[state].token;
+        if (nextToken == TOKEN_ERROR) {
+            errorMessage = stateErrorMessage[state];
+        }
     }
-    nextToken = lookup(state);
     return nextToken;
 }
 
-static void printRow(FILE *out) {
-    int width = 0;
+static void printLexeme(FILE *out) {
     for (int i = 0; i < lexLen; i++) {
         if (lexeme[i] == '\n') {
-            width += fprintf(out, "\\n");
+            fputs("\\n", out);
         } else if (lexeme[i] == '\t') {
-            width += fprintf(out, "\\t");
+            fputs("\\t", out);
         } else if (lexeme[i] != '\r') {
             fputc(lexeme[i], out);
-            width++;
         }
     }
-    fprintf(out, "%*s %s\n", width < 30 ? 30 - width : 0, "", tokenName[nextToken]);
 }
 
 static int hasEpsilonExtension(const char *path) {
@@ -430,6 +471,39 @@ static int hasEpsilonExtension(const char *path) {
     return state == 4;
 }
 
+static char *makeSymbolTablePath(const char *sourcePath) {
+    static const char fileName[] = "Symbol Table.txt";
+    int folderLength = 0;
+    for (int i = 0; sourcePath[i] != '\0'; i++) {
+        if (sourcePath[i] == '/' || sourcePath[i] == '\\') {
+            folderLength = i + 1;
+        }
+    }
+    char *path = malloc(folderLength + sizeof fileName);
+    if (path == NULL) {
+        fprintf(stderr, "Out of memory!\n");
+        exit(1);
+    }
+    for (int i = 0; i < folderLength; i++) {
+        path[i] = sourcePath[i];
+    }
+    for (int i = 0; i < (int)sizeof fileName; i++) {
+        path[folderLength + i] = fileName[i];
+    }
+    return path;
+}
+
+static int containsNulByte(FILE *file) {
+    int character;
+    while ((character = getc(file)) != EOF) {
+        if (character == '\0') {
+            return 1;
+        }
+    }
+    rewind(file);
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <file.epl>\n", argv[0]);
@@ -444,23 +518,60 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Cannot open file: %s\n", argv[1]);
         return 1;
     }
-    FILE *symbolTable = fopen("Symbol Table.txt", "w");
+    if (containsNulByte(in_fp)) {
+        fprintf(stderr, "Source file contains a NUL byte!\n");
+        fclose(in_fp);
+        return 1;
+    }
+    char *tablePath = makeSymbolTablePath(argv[1]);
+    FILE *symbolTable = fopen(tablePath, "w");
     if (symbolTable == NULL) {
-        fprintf(stderr, "Cannot create Symbol Table.txt\n");
+        fprintf(stderr, "Cannot create %s\n", tablePath);
+        fclose(in_fp);
+        free(tablePath);
         return 1;
     }
 
-    printf("%-30s %s\n", "LEXEME", "TOKEN");
-    fprintf(symbolTable, "%-30s %s\n", "LEXEME", "TOKEN");
+    printf("%-5s %-15s %s\n", "LINE:", "TOKEN:", "LEXEME:");
+    printf("%-5s %-15s %s\n", "----", "-----", "------");
+    fprintf(symbolTable, "%-5s | %-5s | %-15s | %s\n", "LINE", "COL", "TOKEN", "LEXEME");
+    fprintf(symbolTable, "----------------------------------------\n");
 
+    int tokenCount = 0;
+    int errorCount = 0;
+    int isFinished = 0;
     getChar();
-    while (lex() != TOKEN_END_OF_FILE) {
-        printRow(stdout);
-        printRow(symbolTable);
+    while (isFinished == 0) {
+        lex();
+
+        printf("%-5d %-15s ", tokenLine, tokenName[nextToken]);
+        printLexeme(stdout);
+        putchar('\n');
+        fprintf(symbolTable, "%-5d | %-5d | %-15s | ", tokenLine, tokenColumn, tokenName[nextToken]);
+        printLexeme(symbolTable);
+        fputc('\n', symbolTable);
+
+        if (nextToken == TOKEN_END_OF_FILE) {
+            isFinished = 1;
+        } else {
+            tokenCount++;
+            if (nextToken == TOKEN_ERROR) {
+                errorCount++;
+                printf("^ lexical error (line %d, col %d): %s.\n", tokenLine, tokenColumn, errorMessage);
+            }
+        }
+    }
+
+    if (errorCount > 0) {
+        printf("%d lexical error(s) found.\n", errorCount);
+    } else {
+        printf("No lexical error found. %d tokens.\n", tokenCount);
     }
 
     fclose(symbolTable);
+    printf("Symbol table written to %s.\n", tablePath);
+    free(tablePath);
     fclose(in_fp);
     free(lexeme);
-    return 0;
+    return errorCount > 0;
 }
