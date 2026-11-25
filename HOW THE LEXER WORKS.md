@@ -184,6 +184,16 @@ gcc -std=c99 -Wall -Wextra -o lexer εpsilonLexicalAnalyzer.c
 ./lexer "Sample Programs/sampleValidProgram.epl"
 ```
 
-Expected: `No lexical error found. 193 tokens.` and a new
-`Sample Programs/Symbol Table.txt`. The invalid sample gives
-`16 lexical error(s) found.`, the complete sample `530 tokens`.
+Expected: `No lexical error found. 464 tokens.` and a new
+`Sample Programs/Symbol Table.txt`.
+
+The three sample programs are the same files the syntax analyzer uses:
+
+| File | Lexer result |
+|---|---|
+| `sampleValidProgram.epl` | `No lexical error found. 464 tokens.` (every token type appears) |
+| `sampleLexicalErrors.epl` | `16 lexical error(s) found.` (every lexer error message appears) |
+| `sampleSyntaxErrors.epl` | `No lexical error found. 270 tokens.` (its errors are for the parser) |
+
+The Symbol Table is the input of the syntax analyzer, which is run next:
+`./parser "Sample Programs/Symbol Table.txt"`.
