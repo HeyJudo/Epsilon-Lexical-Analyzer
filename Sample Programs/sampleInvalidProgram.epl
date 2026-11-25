@@ -1,42 +1,86 @@
-# This program should be an INVALID .epl file.
-/* Multiple errors should be reported. The purpose of this program is to test whether
- the lexer catches every kind of lexical error and keeps going after each one.
- Every line after a numbered comment holds one lexical error, unless noted. */
+# Section 1: Declarations
+integer count = 10
+decimal ratio = 2.5
+string name = "Juan"
+boolean ready = true
+vector scores = [1, 2, 3]
+character grade = 'A'
+integer total = 0
 
-# --- Numbers ---
-# 1. Identifier starting with a digit:
-integer 1Sample = 5
-# 2. Decimal literal followed by a letter:
-decimal height = 1.75m
-# 3. Decimal point with no digit after it:
-decimal pi = 3.
-# 4. Decimal point with no digit before it (the . is reported, 5 is still read):
-decimal half = .5
+# Section 2: Lexical errors
+integer a = 5;
+integer b = 4 @
+integer c = 4 $
+boolean f = true &
+boolean g = true !
+decimal d = 2.5 5.
+integer e = 7 3stats
+character h = 'z' ''
+character i = 'z' 'ab'
+character j = 'z' 'x
+string k = "ok" "oops
+print("fine")
 
-# --- Character literals ---
-# 5. Empty character literal:
-character empty = ''
-# 6. More than one character in a character literal:
-character two = 'ab'
-# 7. Character literal never closed:
-character open = 'x
+# Section 3: Syntax errors
+input()
+input count)
+input(count 5)
+input(while)
+input(5)
+input(scores)
+print "hi"
+print("Score: " count)
+print("a" {
+print()
+integer = 1
+integer if
+integer mean
+integer p q
+integer r += 1
+integer s = 1,
+5 = count
+total 3
+count = (1 + 2 5
+count = 1 + )
+vector v1 = [1, 2,]
+vector v2 = [1, 2 5
+count = scores[0 5
+if {
+    print(count)
+}
+if ready print(count)
+else print(count)
+if ready {
+    print(count)
+} else {
+    print(count)
+} elif ready {
+    print(count)
+}
+print(count)
+elif ready print(count)
+}
 
-# --- String literals ---
-# 8. String never closed (a string cannot continue onto the next line):
-string title = "Sample
-# 9. A # inside an unclosed string is part of the string, not a comment:
-string note = "Total # not a comment
+# Section 4: Type errors
+count = ratio
+name += 1
+count /= 2
+vector bad = [1, "x"]
+count = total[0]
+decimal mm = mean(total)
+boolean cmp = name < 3
+boolean lg = count and ready
+boolean nt = not count
+count = missing + 1
+if count + 1 {
+    print(count)
+}
+while count + 1 {
+    print(count)
+}
 
-# --- Symbols outside the language ---
-# 10. Symbols that are not part of the language (two errors, @ and $):
-integer total = 10 @ 2 $ 1
-# 11. != is not an operator, use not= instead:
-boolean different = age != 20
-# 12. Semicolons are not used, a newline ends a statement:
-integer count = 5;
-# 13. C-style && is not an operator, use and instead (two errors, & and &):
-boolean both = true && false
-
-# --- Comments ---
-# 14. Block comment never closed (kept last because it swallows the rest of the file):
-/* this comment never ends
+# Section 5: Unclosed comment
+while count < 10 {
+    print(count)
+/* this comment is never closed
+}
