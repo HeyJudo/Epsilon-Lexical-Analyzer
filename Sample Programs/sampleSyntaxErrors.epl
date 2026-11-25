@@ -1,0 +1,70 @@
+# Sample program with SYNTAX errors only. It has no lexical errors, so the
+# lexer accepts it. Every line marked below is a syntax error, and the
+# parser reports each one with its line number and keeps going.
+
+# Section 1: declarations (valid, used by the lines below)
+integer count = 0
+decimal total = 0.0
+string name = "Juan"
+boolean ready = true
+vector scores = [1, 2, 3]
+
+# Section 2: input statements
+input()
+input count)
+input(count
+input(while)
+input(5)
+
+# Section 3: output statements
+print "hello"
+print("Score: " count)
+print("Score: ", count
+print()
+
+# Section 4: declarations
+integer = 1
+integer if
+integer mean
+integer p q
+integer r += 1
+integer s, , t
+
+# Section 5: assignments
+5 = count
+total total
+count = 1 +
+count = count = 1
+mean = 2
+count = (1 + 2
+
+# Section 6: vectors and indexing
+vector v1 = [1, 2,]
+vector v2 = [1, 2 5
+count = scores[0 5
+
+# Section 7: conditionals
+if {
+    print(count)
+}
+if ready print(count)
+else print(count)
+if ready {
+    print(count)
+} else {
+    print(count)
+} elif ready {
+    print(count)
+}
+print(count)
+elif ready print(count)
+}
+
+# Section 8: loops
+while count < 10
+    count += 1
+while {
+    count += 1
+}
+while count < 10 {
+    print(count)
