@@ -1,0 +1,30 @@
+# Sample program with LEXICAL errors only. Every marked token is invalid,
+# and the lexer reports each one. The rest of each line is valid, so after
+# the parser skips the ERROR tokens it finds no syntax errors.
+
+# Unexpected characters
+integer a = 5;
+integer b = 4 @
+integer c = 4 $
+integer d = 4 ?
+integer e = 4 .
+boolean f = true &
+boolean g = true !
+
+# Numbers
+decimal h = 2.5 5.
+integer i = 7 3stats
+
+# Character literals
+character j = 'z' ''
+character k = 'z' 'ab'
+character l = 'z' 'x
+character m = 'z' 'xy
+character n = 'z' '
+
+# String literal
+string o = "ok" "oops
+
+print("the comment below is never closed")
+/* this block comment is never closed, so the lexer reports it
+print("this line is inside the comment")
