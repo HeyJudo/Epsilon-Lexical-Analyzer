@@ -1,43 +1,97 @@
-# This program should be a VALID .epl file.
-/* No errors should return. The purpose of this program is to test whether the lexer functions properly.
-It uses every token category: keywords, reserved words, noise words, constants, operators, etc. */
+# Sample statistics tracker for a weight study
+/* This program records the weights of a small sample,
+   computes summary statistics, and grades the result. */
 
-let string name = "Juan"
-character sex = 'M'
-integer days = 45
-decimal weight = 115.5
-boolean done = false
-vector weights = [50, 51, 52]
+# Section 1: declarations
+let integer count = 0
+integer i = 1, j, k = 2
+integer x, y
+decimal total = 150
+decimal avg = 0.0, limit = 72.5
+character grade = 'A'
+string name = "Juan"
+boolean passed = true
+boolean failed = false
+vector scores = []
+vector weights = [50, 51, 52,
+                  60, 61, 70]
 
-input from (days)
-print the mean(weights[0:2])
+# Section 2: input
+input(count)
+input from (name)
+input(x) # trailing comment
+
+# Section 3: output
+print("Weight study")
+print(count)
+print("Count: ", count)
+print(the mean(weights), "kg", passed)
 print using (median of (weights), mode(weights), variance(weights))
+print(weights[0:2], weights[1], weights[])
 
-weight /= 2.2
-while weight < 55 and not done{
-    weight += 0.5
-    weight -= 0.1
-    weight *= 1.01
-    done = weight >= 55
+# Section 4: assignments
+avg = limit / 2
+avg = count
+count = -5
+grade = 'B'
+count = (i + j) * k // 2 ^ 3 ^ 2
+y = count % 7 - x // 2
+passed = not (x == y) and x > 0 or count <= 10
+count += 1
+x -= 2
+y *= 3
+avg /= 4
+i %= 60
+k ^= 2
+weights += 5
+
+# Section 5: conditionals
+if count > 1 {
+    print("count is big")
 }
 
-decimal growth = 1.01
-growth ^= days // 7
-if done == true or weight / 1.7 ^ 2 > 25{
-    print(name, sex, growth)
+if passed
+{
+    print("passed")
+}
+else
+{
+    print("failed")
 }
 
-elif days % 7 not= 0 and weight <= 50{
-    print(name, 55 - weight)
+if x >= y {
+    print("x leads")
+} else {
+    print("y leads")
 }
 
-else{
-    days %= 7
-    print(name, weight * 2.2, days + 1)
+if count >= 75 {
+    grade = 'A'
+} elif count >= 50 {
+    grade = 'B'
+} elif count not= 0 {
+    grade = 'C'
+} else {
+    if count < 0 and failed {
+        print("negative")
+    }
+    grade = 'F'
 }
 
+# Section 6: loops
+integer n = 0
+while n < 3
+{
+    input(n)
+    n += 1
+}
 
-
-
-
-
+while i <= 3 {
+    j = 0
+    while j < 2 {
+        print(i, j)
+        j += 1
+    }
+    i += 1
+}
+print("done")
